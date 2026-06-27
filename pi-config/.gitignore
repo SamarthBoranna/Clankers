@@ -1,0 +1,8 @@
+# Dependencies installed into extensions at deploy time
+node_modules/
+
+# Backups created by deploy.sh when replacing pre-existing files
+*.bak.*
+
+# Never commit secrets even if they wander into this tree
+auth.json

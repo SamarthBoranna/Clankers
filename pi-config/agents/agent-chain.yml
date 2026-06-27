@@ -1,0 +1,16 @@
+# Agent chains / teams (placeholder — not loaded by anything yet).
+# Describes how agents defined in this directory compose into pipelines or teams.
+
+chains: []
+# - name: plan-and-build
+#   description: Plan a task, then implement it.
+#   steps:
+#     - agent: planner      # -> agents/planner.md
+#     - agent: implementer  # -> agents/implementer.md
+
+teams: []
+# - name: review-board
+#   description: Parallel reviewers that vote.
+#   members:
+#     - security-reviewer
+#     - perf-reviewer

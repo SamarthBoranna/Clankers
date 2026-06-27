@@ -1,0 +1,32 @@
+# Example flavor (placeholder — not loaded by anything yet).
+# A flavor bundles the capabilities active for a session.
+name: example
+description: >-
+  Illustrative flavor. Replace with real bundles once the flavor-loading
+  extension exists.
+
+# Model defaults this flavor prefers (optional; overrides settings.json).
+model:
+  provider: anthropic
+  model: claude-opus-4-8
+  thinkingLevel: medium
+
+# Names resolve against ~/.pi/agent/extensions/*
+extensions: []
+# - token-optimizer
+# - custom-footer
+
+# Names resolve against ~/.pi/agent/skills/*
+skills: []
+# - code-review
+
+# Built-in pi tools to allow (empty = pi defaults).
+tools: []
+# - read
+# - bash
+# - edit
+# - write
+
+# Names resolve against ~/.pi/agent/agents/*
+agents: []
+# - planner
