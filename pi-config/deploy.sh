@@ -9,6 +9,9 @@
 #   - COPY settings.json (symlinking it occasionally causes issues because pi
 #     rewrites the file at runtime).
 #   - NEVER touch auth.json, bin/, or sessions/ (secrets / machine-local state).
+#   - INSTALL external dependencies: extension npm packages, plus Nerd Fonts
+#     (downloaded cross-platform from the official release into the OS font dir)
+#     — installed machine-locally so no binaries are committed to the repo.
 #
 # The script is idempotent: re-running only fixes what is wrong and backs up any
 # pre-existing real files/dirs before replacing them with symlinks.
@@ -40,6 +43,12 @@ AGENT_DIR="${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}"
 #   native pi resources : skills extensions prompts themes
 #   custom abstractions : agents flavors  (consumed by your own future extensions)
 RESOURCE_DIRS=(skills extensions prompts themes agents flavors)
+
+# Nerd Fonts to install (cross-platform, from the official ryanoasis/nerd-fonts
+# release). Each name matches a release asset: <Name> -> <Name>.zip.
+# Needed by the tui-design footer glyphs (folder / git-branch).
+NERD_FONTS_VERSION="3.4.0"
+NERD_FONTS=(JetBrainsMono)
 
 # ----------------------------------------------------------------------------
 # Pretty logging
@@ -167,6 +176,77 @@ install_extension_deps() {
 }
 
 # ----------------------------------------------------------------------------
+# Install Nerd Fonts cross-platform, straight from the official release.
+#
+# npm/package.json can't do this: packages land in node_modules/, which the
+# terminal never reads — fonts must be registered with the OS. So we download
+# the official release zip and drop the glyph files into the OS user font dir:
+#   macOS : ~/Library/Fonts/nerd-fonts/<Name>/
+#   Linux : ~/.local/share/fonts/nerd-fonts/<Name>/  (+ fc-cache refresh)
+# Idempotent via a per-font .version stamp; bump NERD_FONTS_VERSION to upgrade.
+# ----------------------------------------------------------------------------
+install_nerd_fonts() {
+  [ "${#NERD_FONTS[@]}" -gt 0 ] || { log_skip "no Nerd Fonts configured"; return 0; }
+
+  if ! command -v curl >/dev/null 2>&1 || ! command -v unzip >/dev/null 2>&1; then
+    log_warn "curl/unzip not found; skipping Nerd Font install"
+    return 0
+  fi
+
+  local font_dir
+  case "$(uname -s)" in
+    Darwin) font_dir="$HOME/Library/Fonts" ;;
+    *)      font_dir="${XDG_DATA_HOME:-$HOME/.local/share}/fonts" ;;
+  esac
+
+  local refreshed=0 name dest stamp url tmp
+  for name in "${NERD_FONTS[@]}"; do
+    dest="$font_dir/nerd-fonts/$name"
+    stamp="$dest/.version"
+
+    if [ -f "$stamp" ] && [ "$(cat "$stamp" 2>/dev/null)" = "$NERD_FONTS_VERSION" ]; then
+      log_skip "$name Nerd Font (v$NERD_FONTS_VERSION already installed)"
+      continue
+    fi
+
+    url="https://github.com/ryanoasis/nerd-fonts/releases/download/v$NERD_FONTS_VERSION/$name.zip"
+    tmp="$(mktemp -d)"
+    log_step "Downloading $name Nerd Font v$NERD_FONTS_VERSION"
+    if ! curl -fsSL "$url" -o "$tmp/$name.zip"; then
+      log_warn "$name: download failed ($url); skipping"
+      rm -rf "$tmp"
+      continue
+    fi
+
+    rm -rf "$dest"
+    mkdir -p "$dest"
+    # Extract glyph files only (skip licenses/readmes). unzip exits 11 when one
+    # of the patterns matches nothing (e.g. a font ships only .ttf and no .otf),
+    # which is harmless — so we ignore its exit code and instead confirm success
+    # by checking what actually landed in $dest.
+    unzip -qo "$tmp/$name.zip" '*.ttf' '*.otf' -d "$dest" >/dev/null 2>&1 || true
+    shopt -s nullglob
+    local got=("$dest"/*.ttf "$dest"/*.otf)
+    shopt -u nullglob
+    if [ "${#got[@]}" -eq 0 ]; then
+      log_warn "$name: no .ttf/.otf found in archive; skipping"
+      rm -rf "$tmp" "$dest"
+      continue
+    fi
+    printf '%s\n' "$NERD_FONTS_VERSION" > "$stamp"
+    rm -rf "$tmp"
+    refreshed=1
+    log_link "$name Nerd Font -> ${dest/#$HOME/~}"
+  done
+
+  if [ "$refreshed" -eq 1 ]; then
+    # Refresh the fontconfig cache on Linux so new fonts are picked up.
+    command -v fc-cache >/dev/null 2>&1 && fc-cache -f >/dev/null 2>&1 || true
+    log_warn "Set your terminal's font to the installed Nerd Font to see TUI glyphs."
+  fi
+}
+
+# ----------------------------------------------------------------------------
 # Run
 # ----------------------------------------------------------------------------
 log_step "pi-config deploy"
@@ -189,8 +269,9 @@ log_step "Copying settings"
 copy_settings
 echo
 
-log_step "Installing extension dependencies"
+log_step "Installing dependencies"
 install_extension_deps
+install_nerd_fonts
 echo
 
 log_step "Done."

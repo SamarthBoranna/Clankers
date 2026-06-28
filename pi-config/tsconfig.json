@@ -1,0 +1,37 @@
+{
+  // Editor-only type-checking for pi extensions (and any future TS under
+  // pi-config/). There is no local node_modules: pi injects these packages at
+  // runtime, so `paths` point at the type declarations inside the
+  // globally-installed pi-coding-agent.
+  //
+  // NOTE: these paths are pinned to the current Node version + pi install. If you
+  // change Node (nvm) or reinstall pi, update the version segment below. Find it
+  // with: dirname "$(dirname "$(readlink -f "$(command -v pi)")")"
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2023"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "baseUrl": ".",
+    "typeRoots": [
+      "/Users/samarth/.nvm/versions/node/v24.18.0/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@types"
+    ],
+    "types": ["node"],
+    "paths": {
+      "@earendil-works/pi-coding-agent": [
+        "/Users/samarth/.nvm/versions/node/v24.18.0/lib/node_modules/@earendil-works/pi-coding-agent/dist/index.d.ts"
+      ],
+      "@earendil-works/pi-ai": [
+        "/Users/samarth/.nvm/versions/node/v24.18.0/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/pi-ai/dist/index.d.ts"
+      ],
+      "@earendil-works/pi-tui": [
+        "/Users/samarth/.nvm/versions/node/v24.18.0/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/pi-tui/dist/index.d.ts"
+      ]
+    }
+  },
+  "include": ["extensions/**/*.ts"]
+}
